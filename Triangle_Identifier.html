@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Triangle Identifier (p5.js)</title>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.3/lib/p5.min.js"></script>
+  <style>
+    body {
+      background: #0b0e1a;
+      color: #e8ebff;
+      font-family: system-ui, sans-serif;
+      margin: 0;
+      display: grid;
+      place-items: center;
+    }
+    main {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 24px;
+      padding: 20px;
+      max-width: 1000px;
+      width: 100%;
+    }
+    @media (max-width: 800px) { main { grid-template-columns: 1fr; } }
+    .panel {
+      background: #171a2b;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    }
+    h1 { text-align: center; }
+    button, input[type=radio] { cursor: pointer; }
+    .options { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .btn {
+      background: #7aa2ff;
+      color: #0b0e1a;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-weight: 600;
+    }
+    .btn:hover { filter: brightness(1.1); }
+    .hidden { display: none; }
+    canvas { border-radius: 12px; background: #0b0f1d; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="panel">
+      <h1>Triangle Identifier</h1>
+      <p><b>1.</b> How many equal sides does the triangle have?</p>
+      <div class="options" id="sides">
+        <label><input type="radio" name="sides" value="0"> 0 (Scalene)</label>
+        <label><input type="radio" name="sides" value="2"> 2 (Isosceles)</label>
+        <label><input type="radio" name="sides" value="3"> 3 (Equilateral)</label>
+      </div>
+      <div id="angle-right" class="hidden">
+        <p><b>2.</b> Does it have a right angle?</p>
+        <button class="btn" data-right="yes">Yes</button>
+        <button class="btn" data-right="no">No</button>
+      </div>
+      <div id="angle-obtuse" class="hidden">
+        <p><b>3.</b> Does it have an obtuse angle?</p>
+        <button class="btn" data-obtuse="yes">Yes</button>
+        <button class="btn" data-obtuse="no">No</button>
+      </div>
+      <p id="summary"></p>
+      <p id="result" style="font-weight:bold;color:#6be675;"></p>
+      <button class="btn" id="reset">Start Over</button>
+    </div>
+    <div id="canvas-holder"></div>
+  </main>
+
+  <script>
+    let state = { sides: null, right: null, obtuse: null, sideType: null, angleType: null };
+
+    function updateSummary() {
+      let s = document.getElementById('summary');
+      let r = document.getElementById('result');
+      let lines = [];
+      if (state.sides !== null) lines.push("Equal sides: " + state.sides);
+      if (state.sides === 3) lines.push("Angle questions skipped (acute inferred)");
+      else {
+        if (state.right !== null) lines.push("Right angle?: " + (state.right ? "yes" : "no"));
+        if (state.obtuse !== null) lines.push("Obtuse angle?: " + (state.obtuse ? "yes" : "no"));
+      }
+      s.textContent = lines.join(" | ");
+      classify();
+      if (state.sideType && state.angleType) {
+        r.textContent = "This is an " + state.sideType.toLowerCase() + " " + state.angleType.toLowerCase() + " triangle.";
+      } else r.textContent = "";
+      redraw();
+    }
+
+    function classify() {
+      if (state.sides === 3) {
+        state.sideType = "Equilateral";
+        state.angleType = "Acute";
+        return;
+      }
+      state.sideType = state.sides === 2 ? "Isosceles" : "Scalene";
+      if (state.right === true) state.angleType = "Right";
+      else if (state.right === false) {
+        if (state.obtuse === true) state.angleType = "Obtuse";
+        else if (state.obtuse === false) state.angleType = "Acute";
+      }
+    }
+
+    function resetAll() {
+      state = { sides: null, right: null, obtuse: null, sideType: null, angleType: null };
+      document.querySelectorAll("input[name=sides]").forEach(i => i.checked = false);
+      document.getElementById("angle-right").classList.add("hidden");
+      document.getElementById("angle-obtuse").classList.add("hidden");
+      updateSummary();
+    }
+
+    document.querySelectorAll("input[name=sides]").forEach(r => {
+      r.addEventListener("change", () => {
+        state.sides = parseInt(r.value);
+        if (state.sides === 3) {
+          state.right = null; state.obtuse = null;
+          document.getElementById("angle-right").classList.add("hidden");
+          document.getElementById("angle-obtuse").classList.add("hidden");
+        } else {
+          document.getElementById("angle-right").classList.remove("hidden");
+        }
+        updateSummary();
+      });
+    });
+
+    document.querySelectorAll("[data-right]").forEach(b => b.addEventListener("click", () => {
+      state.right = b.dataset.right === "yes";
+      if (state.right) document.getElementById("angle-obtuse").classList.add("hidden");
+      else document.getElementById("angle-obtuse").classList.remove("hidden");
+      updateSummary();
+    }));
+
+    document.querySelectorAll("[data-obtuse]").forEach(b => b.addEventListener("click", () => {
+      state.obtuse = b.dataset.obtuse === "yes";
+      updateSummary();
+    }));
+
+    document.getElementById("reset").addEventListener("click", resetAll);
+
+    let cnv;
+    function setup() {
+      let holder = document.getElementById("canvas-holder");
+      cnv = createCanvas(holder.clientWidth - 20, 400);
+      cnv.parent(holder);
+      angleMode(DEGREES);
+      noLoop();
+    }
+    function windowResized() {
+      let holder = document.getElementById("canvas-holder");
+      resizeCanvas(holder.clientWidth - 20, 400);
+      redraw();
+    }
+    function draw() {
+      background(10,15,30);
+      stroke(255,255,255,30);
+      for(let x=20;x<width;x+=20) line(x,0,x,height);
+      for(let y=20;y<height;y+=20) line(0,y,width,y);
+      const cx = width/2, cy = height*0.7;
+      let pts;
+      const triEq = () => [{x:cx, y:cy-150}, {x:cx-86, y:cy+75}, {x:cx+86, y:cy+75}];
+      const triIsoRight = () => [{x:cx-120,y:cy},{x:cx,y:cy},{x:cx,y:cy-120}];
+      const triIsoObtuse = () => [{x:cx-140,y:cy+40},{x:cx+140,y:cy+40},{x:cx+50,y:cy-40}];
+      const triIsoAcute = () => [{x:cx,y:cy-160},{x:cx-100,y:cy+40},{x:cx+100,y:cy+40}];
+      const triScalRight = () => [{x:cx-150,y:cy+40},{x:cx+30,y:cy+40},{x:cx+30,y:cy-100}];
+      const triScalObt = () => [{x:cx-170,y:cy+40},{x:cx+170,y:cy+40},{x:cx-30,y:cy-10}];
+      const triScalAcute = () => [{x:cx-150,y:cy+60},{x:cx+120,y:cy+20},{x:cx-20,y:cy-120}];
+      if (state.sideType === "Equilateral") pts = triEq();
+      else if (state.sideType === "Isosceles") {
+        if (state.angleType === "Right") pts = triIsoRight();
+        else if (state.angleType === "Obtuse") pts = triIsoObtuse();
+        else pts = triIsoAcute();
+      } else if (state.sideType === "Scalene") {
+        if (state.angleType === "Right") pts = triScalRight();
+        else if (state.angleType === "Obtuse") pts = triScalObt();
+        else pts = triScalAcute();
+      } else pts = triEq();
+      stroke(122,162,255); strokeWeight(3); fill(122,162,255,40);
+      triangle(pts[0].x,pts[0].y,pts[1].x,pts[1].y,pts[2].x,pts[2].y);
+      noStroke(); fill(232); textAlign(CENTER);
+      text(state.sideType && state.angleType ? `${state.sideType} ${state.angleType}` : "Awaiting input...", cx, 20);
+    }
+    const origUpdate = updateSummary;
+    updateSummary = function(){ origUpdate(); redraw(); }
+    resetAll();
+  </script>
+</body>
+</html>
