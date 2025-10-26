@@ -1,6 +1,6 @@
 # Triangle Identifier
 
-Interactive tools for classifying triangles by their side lengths and angles. The project includes both a command-line questionnaire (`triangle.py`) and a p5.js-powered web visualizer (`Triangle_Identifier.html`).
+Interactive tools for classifying triangles by their side lengths and angles. The project includes both a command-line questionnaire (`triangle.py`) and a p5.js-powered web visualizer (`Triangle_Identifier.html`). The python code was created with the assistance of gpt5 and the web page was created by Codex.
 
 ## Project Structure
 - `triangle.py` — Console assistant that walks through a series of questions to identify the triangle type.
