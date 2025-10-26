@@ -108,7 +108,7 @@ while True:
             description = "This triangle has all different sides and all angles are acute"
 
     print(f"This is an {side_type.lower()} {angle_type.lower()} triangle.")
-    print(f"Your triangle has {description}.\n")
+    print(f"{description}.\n")
 
 
 

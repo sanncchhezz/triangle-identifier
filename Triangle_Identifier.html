@@ -2,190 +2,759 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Triangle Identifier (p5.js)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Triangle Identifier Explorer</title>
   <script src="https://cdn.jsdelivr.net/npm/p5@1.9.3/lib/p5.min.js"></script>
   <style>
+    :root {
+      color-scheme: dark;
+      --bg-outer: #070913;
+      --bg-inner: #12162a;
+      --panel: #191d33;
+      --panel-border: rgba(122, 162, 255, 0.18);
+      --accent: #7aa2ff;
+      --accent-strong: #4780ff;
+      --accent-soft: rgba(122, 162, 255, 0.16);
+      --text-main: #e8ebff;
+      --text-muted: #b9c2ff;
+      --success: #6be675;
+    }
+    * {
+      box-sizing: border-box;
+    }
     body {
-      background: #0b0e1a;
-      color: #e8ebff;
-      font-family: system-ui, sans-serif;
       margin: 0;
-      display: grid;
-      place-items: center;
-    }
-    main {
-      display: grid;
-      grid-template-columns: 320px 1fr;
+      min-height: 100vh;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: radial-gradient(circle at top, rgba(71,128,255,0.18), transparent 58%),
+                  linear-gradient(160deg, var(--bg-outer), var(--bg-inner) 55%, #06070f 100%);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 16px 48px;
       gap: 24px;
-      padding: 20px;
-      max-width: 1000px;
-      width: 100%;
     }
-    @media (max-width: 800px) { main { grid-template-columns: 1fr; } }
+    header {
+      text-align: center;
+      max-width: 720px;
+    }
+    header h1 {
+      margin: 0 0 6px;
+      font-size: clamp(2rem, 3vw, 2.5rem);
+      letter-spacing: 0.02em;
+    }
+    header p {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+    .taxonomy {
+      margin: 0;
+      padding: 0 0 12px;
+      list-style: none;
+      display: grid;
+      width: min(1080px, 100%);
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 18px;
+      color: var(--text-muted);
+    }
+    .taxonomy dt {
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    .taxonomy dd {
+      margin: 4px 0 0;
+      line-height: 1.5;
+    }
+    main.layout {
+      width: min(1080px, 100%);
+      display: grid;
+      grid-template-columns: minmax(280px, 360px) 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 880px) {
+      main.layout {
+        grid-template-columns: 1fr;
+      }
+    }
     .panel {
-      background: #171a2b;
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      padding: 22px 24px;
+      box-shadow: 0 18px 28px rgba(5, 8, 20, 0.35);
+      position: relative;
+      overflow: hidden;
     }
-    h1 { text-align: center; }
-    button, input[type=radio] { cursor: pointer; }
-    .options { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(128deg, rgba(122,162,255,0.12), transparent 45%);
+      pointer-events: none;
+    }
+    .panel > * {
+      position: relative;
+      z-index: 1;
+    }
+    .panel h2 {
+      margin: 0 0 18px;
+      font-size: 1.1rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    button, input[type=radio] {
+      cursor: pointer;
+    }
+    .steps {
+      list-style: none;
+      margin: 0 0 24px;
+      padding: 0;
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .step {
+      flex: 1;
+      padding: 11px 8px;
+      text-align: center;
+      font-size: 0.78rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      border-radius: 10px;
+      border: 1px solid rgba(122,162,255,0.22);
+      color: var(--text-muted);
+      background: rgba(14,19,38,0.6);
+      transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+    }
+    .step.active {
+      border-color: var(--accent);
+      color: var(--text-main);
+      background: var(--accent-soft);
+    }
+    .step.complete {
+      border-color: var(--success);
+      color: var(--success);
+      background: rgba(107,230,117,0.08);
+    }
+    .question-block + .question-block {
+      margin-top: 24px;
+    }
+    .question-block p {
+      margin: 0 0 12px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .options label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid transparent;
+      transition: border-color 150ms ease, background 150ms ease;
+      font-size: 0.95rem;
+    }
+    .options label:hover {
+      border-color: rgba(122,162,255,0.5);
+    }
+    .options input[type=radio] {
+      accent-color: var(--accent);
+      transform: scale(1.05);
+    }
     .btn {
-      background: #7aa2ff;
+      background: var(--accent);
       color: #0b0e1a;
       border: none;
-      border-radius: 8px;
-      padding: 6px 12px;
+      border-radius: 10px;
+      padding: 8px 14px;
+      font-weight: 600;
+      transition: filter 120ms linear, transform 120ms linear, box-shadow 120ms linear;
+      box-shadow: 0 8px 16px rgba(71,128,255,0.25);
+    }
+    .btn:hover {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+    }
+    .btn:active {
+      transform: translateY(0);
+      box-shadow: 0 4px 10px rgba(71,128,255,0.2);
+    }
+    .btn.secondary {
+      background: rgba(232,235,255,0.08);
+      color: var(--text-main);
+      box-shadow: none;
+      border: 1px solid rgba(232,235,255,0.12);
+    }
+    .btn.secondary:hover {
+      filter: none;
+      background: rgba(232,235,255,0.14);
+    }
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 24px;
+      flex-wrap: wrap;
+    }
+    .btn.active {
+      filter: brightness(1.15);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(71,128,255,0.28);
+    }
+    .hidden {
+      display: none !important;
+    }
+    #summary {
+      margin: 18px 0 10px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    #result {
+      font-weight: 700;
+      color: var(--success);
+      font-size: 1.05rem;
+      margin: 6px 0 4px;
+    }
+    #description {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+    #canvas-holder {
+      position: relative;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(122,162,255,0.26);
+      background: radial-gradient(circle at top, rgba(122,162,255,0.15), transparent 60%);
+    }
+    canvas {
+      display: block;
+      border-radius: 14px;
+      background: #0b0f1d;
+    }
+    .info-card {
+      margin-top: 20px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      background: rgba(232,235,255,0.04);
+      border: 1px solid rgba(232,235,255,0.08);
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+    .info-card strong {
+      color: var(--text-main);
       font-weight: 600;
     }
-    .btn:hover { filter: brightness(1.1); }
-    .hidden { display: none; }
-    canvas { border-radius: 12px; background: #0b0f1d; }
+    footer {
+      max-width: 720px;
+      width: 100%;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      line-height: 1.6;
+      text-align: center;
+    }
+    footer dl {
+      margin: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    footer dt {
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    footer dd {
+      margin: 0;
+    }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      border: 0;
+    }
   </style>
 </head>
 <body>
-  <main>
-    <div class="panel">
-      <h1>Triangle Identifier</h1>
-      <p><b>1.</b> How many equal sides does the triangle have?</p>
-      <div class="options" id="sides">
-        <label><input type="radio" name="sides" value="0"> 0 (Scalene)</label>
-        <label><input type="radio" name="sides" value="2"> 2 (Isosceles)</label>
-        <label><input type="radio" name="sides" value="3"> 3 (Equilateral)</label>
-      </div>
-      <div id="angle-right" class="hidden">
-        <p><b>2.</b> Does it have a right angle?</p>
-        <button class="btn" data-right="yes">Yes</button>
-        <button class="btn" data-right="no">No</button>
-      </div>
-      <div id="angle-obtuse" class="hidden">
-        <p><b>3.</b> Does it have an obtuse angle?</p>
-        <button class="btn" data-obtuse="yes">Yes</button>
-        <button class="btn" data-obtuse="no">No</button>
-      </div>
-      <p id="summary"></p>
-      <p id="result" style="font-weight:bold;color:#6be675;"></p>
-      <button class="btn" id="reset">Start Over</button>
+  <header>
+    <h1>Triangle Identifier Explorer</h1>
+    <p>Answer a few guided questions to classify any triangle by its sides and angles. The canvas updates instantly to illustrate the shape you describe.</p>
+  </header>
+
+  <dl class="taxonomy" aria-label="Triangle categories">
+    <div>
+      <dt>Scalene</dt>
+      <dd>All three sides have different lengths.</dd>
     </div>
-    <div id="canvas-holder"></div>
+    <div>
+      <dt>Isosceles</dt>
+      <dd>Exactly two sides share the same length.</dd>
+    </div>
+    <div>
+      <dt>Equilateral</dt>
+      <dd>All sides and internal angles are congruent.</dd>
+    </div>
+    <div>
+      <dt>Right Triangle</dt>
+      <dd>Contains one 90° angle.</dd>
+    </div>
+    <div>
+      <dt>Obtuse Triangle</dt>
+      <dd>Contains one angle greater than 90°.</dd>
+    </div>
+    <div>
+      <dt>Acute Triangle</dt>
+      <dd>All angles are less than 90°.</dd>
+    </div>
+  </dl>
+
+  <main class="layout">
+    <section class="panel controls">
+      <h2>Classification Wizard</h2>
+      <ol class="steps">
+        <li class="step active" data-step="1">Equal Sides</li>
+        <li class="step" data-step="2">Right Angle</li>
+        <li class="step" data-step="3">Angle Type</li>
+      </ol>
+
+      <div class="question-block" id="step-sides">
+        <p>1. How many equal sides does your triangle have?</p>
+        <div class="options" id="equal-side-options">
+          <label><input type="radio" name="sides" value="0"> 0 — Scalene</label>
+          <label><input type="radio" name="sides" value="2"> 2 — Isosceles</label>
+          <label><input type="radio" name="sides" value="3"> 3 — Equilateral</label>
+        </div>
+      </div>
+
+      <div class="question-block hidden" id="step-right">
+        <p>2. Does your triangle include a right angle?</p>
+        <div class="options">
+          <button class="btn secondary" data-right="yes">Yes, one angle is 90°</button>
+          <button class="btn secondary" data-right="no">No right angle</button>
+        </div>
+      </div>
+
+      <div class="question-block hidden" id="step-obtuse">
+        <p>3. Is there an obtuse angle?</p>
+        <div class="options">
+          <button class="btn secondary" data-obtuse="yes">Yes, one angle exceeds 90°</button>
+          <button class="btn secondary" data-obtuse="no">No, it’s acute</button>
+        </div>
+      </div>
+
+      <p id="summary">Answer the questions above to build a classification.</p>
+      <p id="result"></p>
+      <p id="description"></p>
+
+      <div class="btn-group">
+        <button class="btn secondary" id="reset">Reset</button>
+        <button class="btn" id="random">Random Example</button>
+      </div>
+    </section>
+
+    <section class="panel visualization">
+      <h2>Triangle Explorer</h2>
+      <div id="canvas-holder"></div>
+      <div class="info-card">
+        <strong>Tip:</strong> Equilateral triangles automatically classify as acute because all angles are 60°. If you pick “no” for the right-angle question, you will be asked whether the triangle is obtuse to finish the classification.
+      </div>
+    </section>
   </main>
 
-  <script>
-    let state = { sides: null, right: null, obtuse: null, sideType: null, angleType: null };
+  <footer></footer>
 
-    function updateSummary() {
-      let s = document.getElementById('summary');
-      let r = document.getElementById('result');
-      let lines = [];
-      if (state.sides !== null) lines.push("Equal sides: " + state.sides);
-      if (state.sides === 3) lines.push("Angle questions skipped (acute inferred)");
-      else {
-        if (state.right !== null) lines.push("Right angle?: " + (state.right ? "yes" : "no"));
-        if (state.obtuse !== null) lines.push("Obtuse angle?: " + (state.obtuse ? "yes" : "no"));
-      }
-      s.textContent = lines.join(" | ");
-      classify();
-      if (state.sideType && state.angleType) {
-        r.textContent = "This is an " + state.sideType.toLowerCase() + " " + state.angleType.toLowerCase() + " triangle.";
-      } else r.textContent = "";
-      redraw();
+  <div id="sr-updates" class="sr-only" aria-live="polite"></div>
+
+  <script>
+    let state = { sides: null, right: null, obtuse: null, sideType: null, angleType: null, description: "" };
+    let canvasReady = false;
+    let lastAnnouncement = "";
+
+    const sideRadios = Array.from(document.querySelectorAll('input[name="sides"]'));
+    const rightButtons = Array.from(document.querySelectorAll('[data-right]'));
+    const obtuseButtons = Array.from(document.querySelectorAll('[data-obtuse]'));
+    const stepRight = document.getElementById("step-right");
+    const stepObtuse = document.getElementById("step-obtuse");
+    const summaryEl = document.getElementById("summary");
+    const resultEl = document.getElementById("result");
+    const descriptionEl = document.getElementById("description");
+    const srUpdates = document.getElementById("sr-updates");
+    const stepIndicators = Array.from(document.querySelectorAll(".step"));
+
+    function announce(message) {
+      if (!message || message === lastAnnouncement) return;
+      lastAnnouncement = message;
+      srUpdates.textContent = message;
     }
 
     function classify() {
+      state.sideType = null;
+      state.angleType = null;
+      state.description = "";
+
+      if (state.sides === null) return;
+
       if (state.sides === 3) {
         state.sideType = "Equilateral";
         state.angleType = "Acute";
+        state.description = "All sides are equal and so are the angles — each measures 60°.";
         return;
       }
+
       state.sideType = state.sides === 2 ? "Isosceles" : "Scalene";
-      if (state.right === true) state.angleType = "Right";
-      else if (state.right === false) {
-        if (state.obtuse === true) state.angleType = "Obtuse";
-        else if (state.obtuse === false) state.angleType = "Acute";
+
+      if (state.right === null) return;
+      if (state.right === true) {
+        state.angleType = "Right";
+        state.description = state.sideType === "Isosceles"
+          ? "Two equal sides meet at a perfect right angle."
+          : "All side lengths differ, but one angle is exactly 90°.";
+        return;
       }
+
+      if (state.obtuse === null) return;
+      state.angleType = state.obtuse ? "Obtuse" : "Acute";
+      if (state.sideType === "Isosceles") {
+        state.description = state.angleType === "Obtuse"
+          ? "Two equal sides create an obtuse angle greater than 90°."
+          : "Two equal sides form a triangle with all acute angles.";
+      } else {
+        state.description = state.angleType === "Obtuse"
+          ? "All sides differ and there is one angle greater than 90°."
+          : "All sides differ and every angle is acute.";
+      }
+    }
+
+    function updateProgress() {
+      const completion = [
+        state.sides !== null,
+        state.sides === 3 || state.right !== null,
+        state.sides === 3 || state.right === true || state.obtuse !== null
+      ];
+
+      let activeIndex = completion.findIndex(done => !done);
+      if (activeIndex === -1) activeIndex = stepIndicators.length - 1;
+
+      stepIndicators.forEach((step, index) => {
+        step.classList.toggle("complete", completion[index]);
+        step.classList.toggle("active", index === activeIndex);
+      });
+    }
+
+    function updateSummary() {
+      const lines = [];
+      if (state.sides !== null) {
+        const sideLabel = state.sides === 3 ? "Equilateral (3 equal sides)" :
+                          state.sides === 2 ? "Isosceles (2 equal sides)" :
+                                              "Scalene (no equal sides)";
+        lines.push(sideLabel);
+      }
+      if (state.sides === 3) {
+        lines.push("Angles: all acute (automatically true for equilateral)");
+      } else if (state.sides !== null) {
+        if (state.right !== null) lines.push(`Right angle: ${state.right ? "yes" : "no"}`);
+        if (state.right === false && state.obtuse !== null) {
+          lines.push(`Obtuse angle: ${state.obtuse ? "yes" : "no"}`);
+        }
+      }
+
+      summaryEl.textContent = lines.length
+        ? lines.join(" • ")
+        : "Answer the questions above to build a classification.";
+
+      classify();
+
+      if (state.sideType && state.angleType) {
+        const descriptor = `${state.sideType.toLowerCase()} ${state.angleType.toLowerCase()}`;
+        const article = /^[aeiou]/.test(descriptor) ? "an" : "a";
+        resultEl.textContent = `This is ${article} ${descriptor} triangle.`;
+        descriptionEl.textContent = state.description;
+        announce(resultEl.textContent);
+      } else if (state.sideType && state.right === null) {
+        resultEl.textContent = "";
+        descriptionEl.textContent = "Select whether the triangle contains a right angle.";
+      } else if (state.sideType && state.right === false && state.obtuse === null) {
+        resultEl.textContent = "";
+        descriptionEl.textContent = "Let us know if one of the angles is obtuse (> 90°).";
+      } else {
+        resultEl.textContent = "";
+        descriptionEl.textContent = "";
+      }
+
+      updateProgress();
+      if (canvasReady) redraw();
     }
 
     function resetAll() {
-      state = { sides: null, right: null, obtuse: null, sideType: null, angleType: null };
-      document.querySelectorAll("input[name=sides]").forEach(i => i.checked = false);
-      document.getElementById("angle-right").classList.add("hidden");
-      document.getElementById("angle-obtuse").classList.add("hidden");
+      state = { sides: null, right: null, obtuse: null, sideType: null, angleType: null, description: "" };
+      sideRadios.forEach(radio => { radio.checked = false; });
+      rightButtons.forEach(btn => btn.classList.remove("active"));
+      obtuseButtons.forEach(btn => btn.classList.remove("active"));
+      stepRight.classList.add("hidden");
+      stepObtuse.classList.add("hidden");
+      lastAnnouncement = "";
+      announce("Triangle classification reset.");
       updateSummary();
     }
 
-    document.querySelectorAll("input[name=sides]").forEach(r => {
-      r.addEventListener("change", () => {
-        state.sides = parseInt(r.value);
-        if (state.sides === 3) {
-          state.right = null; state.obtuse = null;
-          document.getElementById("angle-right").classList.add("hidden");
-          document.getElementById("angle-obtuse").classList.add("hidden");
+    function randomizeExample() {
+      const sideChoices = [0, 2, 3];
+      const randomSide = sideChoices[Math.floor(Math.random() * sideChoices.length)];
+      state.sides = randomSide;
+      sideRadios.forEach(radio => { radio.checked = parseInt(radio.value, 10) === randomSide; });
+
+      state.right = null;
+      state.obtuse = null;
+      rightButtons.forEach(btn => btn.classList.remove("active"));
+      obtuseButtons.forEach(btn => btn.classList.remove("active"));
+
+      if (randomSide === 3) {
+        stepRight.classList.add("hidden");
+        stepObtuse.classList.add("hidden");
+      } else {
+        const hasRight = Math.random() < 0.5;
+        state.right = hasRight;
+        stepRight.classList.remove("hidden");
+        rightButtons.forEach(btn => {
+          const isActive = btn.dataset.right === (hasRight ? "yes" : "no");
+          btn.classList.toggle("active", isActive);
+        });
+
+        if (hasRight) {
+          stepObtuse.classList.add("hidden");
         } else {
-          document.getElementById("angle-right").classList.remove("hidden");
+          const hasObtuse = Math.random() < 0.5;
+          state.obtuse = hasObtuse;
+          stepObtuse.classList.remove("hidden");
+          obtuseButtons.forEach(btn => {
+            const isActive = btn.dataset.obtuse === (hasObtuse ? "yes" : "no");
+            btn.classList.toggle("active", isActive);
+          });
+        }
+      }
+
+      updateSummary();
+      announce("Generated a random triangle classification example.");
+    }
+
+    sideRadios.forEach(radio => {
+      radio.addEventListener("change", () => {
+        state.sides = parseInt(radio.value, 10);
+        state.right = null;
+        state.obtuse = null;
+        rightButtons.forEach(btn => btn.classList.remove("active"));
+        obtuseButtons.forEach(btn => btn.classList.remove("active"));
+
+        if (state.sides === 3) {
+          stepRight.classList.add("hidden");
+          stepObtuse.classList.add("hidden");
+        } else {
+          stepRight.classList.remove("hidden");
+          stepObtuse.classList.add("hidden");
         }
         updateSummary();
       });
     });
 
-    document.querySelectorAll("[data-right]").forEach(b => b.addEventListener("click", () => {
-      state.right = b.dataset.right === "yes";
-      if (state.right) document.getElementById("angle-obtuse").classList.add("hidden");
-      else document.getElementById("angle-obtuse").classList.remove("hidden");
-      updateSummary();
-    }));
+    rightButtons.forEach(button => {
+      button.addEventListener("click", () => {
+        state.right = button.dataset.right === "yes";
+        rightButtons.forEach(btn => btn.classList.toggle("active", btn === button));
+        if (state.right) {
+          state.obtuse = null;
+          stepObtuse.classList.add("hidden");
+          obtuseButtons.forEach(btn => btn.classList.remove("active"));
+        } else {
+          state.obtuse = null;
+          stepObtuse.classList.remove("hidden");
+          obtuseButtons.forEach(btn => btn.classList.remove("active"));
+        }
+        updateSummary();
+      });
+    });
 
-    document.querySelectorAll("[data-obtuse]").forEach(b => b.addEventListener("click", () => {
-      state.obtuse = b.dataset.obtuse === "yes";
-      updateSummary();
-    }));
+    obtuseButtons.forEach(button => {
+      button.addEventListener("click", () => {
+        state.obtuse = button.dataset.obtuse === "yes";
+        obtuseButtons.forEach(btn => btn.classList.toggle("active", btn === button));
+        updateSummary();
+      });
+    });
 
     document.getElementById("reset").addEventListener("click", resetAll);
+    document.getElementById("random").addEventListener("click", randomizeExample);
 
     let cnv;
     function setup() {
-      let holder = document.getElementById("canvas-holder");
-      cnv = createCanvas(holder.clientWidth - 20, 400);
+      const holder = document.getElementById("canvas-holder");
+      cnv = createCanvas(Math.max(holder.clientWidth - 20, 260), 420);
       cnv.parent(holder);
       angleMode(DEGREES);
       noLoop();
-    }
-    function windowResized() {
-      let holder = document.getElementById("canvas-holder");
-      resizeCanvas(holder.clientWidth - 20, 400);
+      canvasReady = true;
       redraw();
     }
-    function draw() {
-      background(10,15,30);
-      stroke(255,255,255,30);
-      for(let x=20;x<width;x+=20) line(x,0,x,height);
-      for(let y=20;y<height;y+=20) line(0,y,width,y);
-      const cx = width/2, cy = height*0.7;
-      let pts;
-      const triEq = () => [{x:cx, y:cy-150}, {x:cx-86, y:cy+75}, {x:cx+86, y:cy+75}];
-      const triIsoRight = () => [{x:cx-120,y:cy},{x:cx,y:cy},{x:cx,y:cy-120}];
-      const triIsoObtuse = () => [{x:cx-140,y:cy+40},{x:cx+140,y:cy+40},{x:cx+50,y:cy-40}];
-      const triIsoAcute = () => [{x:cx,y:cy-160},{x:cx-100,y:cy+40},{x:cx+100,y:cy+40}];
-      const triScalRight = () => [{x:cx-150,y:cy+40},{x:cx+30,y:cy+40},{x:cx+30,y:cy-100}];
-      const triScalObt = () => [{x:cx-170,y:cy+40},{x:cx+170,y:cy+40},{x:cx-30,y:cy-10}];
-      const triScalAcute = () => [{x:cx-150,y:cy+60},{x:cx+120,y:cy+20},{x:cx-20,y:cy-120}];
-      if (state.sideType === "Equilateral") pts = triEq();
-      else if (state.sideType === "Isosceles") {
-        if (state.angleType === "Right") pts = triIsoRight();
-        else if (state.angleType === "Obtuse") pts = triIsoObtuse();
-        else pts = triIsoAcute();
-      } else if (state.sideType === "Scalene") {
-        if (state.angleType === "Right") pts = triScalRight();
-        else if (state.angleType === "Obtuse") pts = triScalObt();
-        else pts = triScalAcute();
-      } else pts = triEq();
-      stroke(122,162,255); strokeWeight(3); fill(122,162,255,40);
-      triangle(pts[0].x,pts[0].y,pts[1].x,pts[1].y,pts[2].x,pts[2].y);
-      noStroke(); fill(232); textAlign(CENTER);
-      text(state.sideType && state.angleType ? `${state.sideType} ${state.angleType}` : "Awaiting input...", cx, 20);
+
+    function windowResized() {
+      if (!canvasReady) return;
+      const holder = document.getElementById("canvas-holder");
+      resizeCanvas(Math.max(holder.clientWidth - 20, 260), 420);
+      redraw();
     }
-    const origUpdate = updateSummary;
-    updateSummary = function(){ origUpdate(); redraw(); }
+
+    function drawTriangle(points, cx, cy) {
+      if (points.length === 3) {
+        push();
+        stroke(122, 162, 255);
+        strokeWeight(3);
+        fill(122, 162, 255, 40);
+        triangle(points[0].x, points[0].y, points[1].x, points[1].y, points[2].x, points[2].y);
+        pop();
+      }
+
+      noStroke();
+      fill(232);
+      textAlign(CENTER);
+      textSize(16);
+      const label = state.sideType && state.angleType ? `${state.sideType} ${state.angleType}` : "";
+      if (label) text(label, cx, 26);
+    }
+
+    function drawRightAngleMarker(points) {
+      if (points.rightIndex == null) return;
+      const rightVertex = points[points.rightIndex];
+      const other = points.filter((_, idx) => idx !== points.rightIndex);
+      const vec1 = createVector(other[0].x - rightVertex.x, other[0].y - rightVertex.y).normalize();
+      const vec2 = createVector(other[1].x - rightVertex.x, other[1].y - rightVertex.y).normalize();
+      const markerSize = Math.min(Math.min(width, height) * 0.05, 22);
+      const corner1 = {
+        x: rightVertex.x + vec1.x * markerSize,
+        y: rightVertex.y + vec1.y * markerSize
+      };
+      const corner2 = {
+        x: rightVertex.x + vec2.x * markerSize,
+        y: rightVertex.y + vec2.y * markerSize
+      };
+      const interior = {
+        x: rightVertex.x + (vec1.x + vec2.x) * markerSize,
+        y: rightVertex.y + (vec1.y + vec2.y) * markerSize
+      };
+      push();
+      noFill();
+      stroke(122, 162, 255);
+      strokeWeight(2);
+      beginShape();
+      vertex(rightVertex.x, rightVertex.y);
+      vertex(corner1.x, corner1.y);
+      vertex(interior.x, interior.y);
+      vertex(corner2.x, corner2.y);
+      endShape(CLOSE);
+      pop();
+    }
+
+    function draw() {
+      background(10, 15, 30);
+      stroke(255, 255, 255, 24);
+      for (let x = 20; x < width; x += 20) line(x, 0, x, height);
+      for (let y = 20; y < height; y += 20) line(0, y, width, y);
+
+      const cx = width / 2;
+      const cy = height * 0.7;
+
+      const triEq = () => {
+        const side = Math.min(width * 0.45, height * 0.5, 220);
+        const altitude = side * Math.sqrt(3) / 2;
+        return [
+          { x: cx, y: cy - altitude * 0.6 },
+          { x: cx - side / 2, y: cy + altitude * 0.4 },
+          { x: cx + side / 2, y: cy + altitude * 0.4 }
+        ];
+      };
+      const triIsoRight = () => {
+        const pts = [{ x: cx - 140, y: cy + 40 }, { x: cx + 20, y: cy + 40 }, { x: cx + 20, y: cy - 120 }];
+        pts.rightIndex = 1;
+        return pts;
+      };
+      const triIsoObtuse = () => [{ x: cx - 180, y: cy + 60 }, { x: cx + 170, y: cy + 50 }, { x: cx - 20, y: cy - 20 }];
+      const triIsoAcute = () => {
+        const baseHalf = Math.min(width * 0.22, 120);
+        const baseY = cy + Math.min(height * 0.2, 80);
+        const apexOffset = Math.min(height * 0.55, 220);
+        return [
+          { x: cx, y: cy - apexOffset },
+          { x: cx - baseHalf, y: baseY },
+          { x: cx + baseHalf, y: baseY }
+        ];
+      };
+      const triScalRight = () => {
+        const baseLength = Math.min(width * 0.42, 260);
+        const heightLeg = Math.min(height * 0.5, 220);
+        const baseY = cy + Math.min(height * 0.18, 80);
+        const leftX = cx - baseLength * 0.25;
+        const pts = [
+          { x: leftX, y: baseY },
+          { x: leftX + baseLength, y: baseY },
+          { x: leftX, y: baseY - heightLeg }
+        ];
+        pts.rightIndex = 0;
+        return pts;
+      };
+      const triScalObt = () => [{ x: cx - 150, y: cy + 60 }, { x: cx + 150, y: cy + 60 }, { x: cx + 40, y: cy - 20 }];
+      const triScalAcute = () => [{ x: cx - 160, y: cy + 70 }, { x: cx + 140, y: cy + 10 }, { x: cx, y: cy - 140 }];
+
+      let sideType = state.sideType;
+      let angleType = state.angleType;
+
+      if (!sideType) {
+        if (state.sides === null) {
+          drawTriangle([], cx, cy);
+          return;
+        }
+        if (state.sides === 3) sideType = "Equilateral";
+        else if (state.sides === 2) sideType = "Isosceles";
+        else if (state.sides === 0) sideType = "Scalene";
+      }
+      if (!angleType && sideType === "Equilateral") {
+        angleType = "Acute";
+      }
+
+      let points;
+      if (sideType === "Equilateral") {
+        points = triEq();
+      } else if (sideType === "Isosceles") {
+        if (angleType === "Right") points = triIsoRight();
+        else if (angleType === "Obtuse") points = triIsoObtuse();
+        else points = triIsoAcute();
+      } else if (sideType === "Scalene") {
+        if (angleType === "Right") points = triScalRight();
+        else if (angleType === "Obtuse") points = triScalObt();
+        else points = triScalAcute();
+      } else {
+        drawTriangle([], cx, cy);
+        return;
+      }
+
+      drawTriangle(points, cx, cy);
+      if ((angleType === "Right" || state.right === true) && points.rightIndex != null) {
+        drawRightAngleMarker(points);
+      }
+    }
+
     resetAll();
   </script>
 </body>
